@@ -1,8 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  reactCompiler: true,
-  serverExternalPackages: ['better-sqlite3'],
+  output: 'export',
+  basePath: '/claude-todo',
+  images: { unoptimized: true },
 };
 
 export default nextConfig;

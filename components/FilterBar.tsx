@@ -1,13 +1,12 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
-import type { Priority } from '@/lib/types';
+import type { TodoFilter, Priority } from '@/lib/types';
 
-const STATUS_OPTIONS = [
+const STATUS_OPTIONS: { value: TodoFilter['status']; label: string }[] = [
   { value: 'all', label: 'すべて' },
   { value: 'active', label: '未完了' },
   { value: 'completed', label: '完了済み' },
-] as const;
+];
 
 const PRIORITY_OPTIONS: { value: Priority | ''; label: string }[] = [
   { value: '', label: 'すべての優先度' },
@@ -18,26 +17,11 @@ const PRIORITY_OPTIONS: { value: Priority | ''; label: string }[] = [
 
 interface FilterBarProps {
   categories: string[];
+  filter: TodoFilter;
+  onChange: (filter: TodoFilter) => void;
 }
 
-export default function FilterBar({ categories }: FilterBarProps) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  const currentStatus = searchParams.get('filter') ?? 'all';
-  const currentCategory = searchParams.get('category') ?? '';
-  const currentPriority = (searchParams.get('priority') ?? '') as Priority | '';
-
-  function update(key: string, value: string) {
-    const params = new URLSearchParams(searchParams.toString());
-    if (value) {
-      params.set(key, value);
-    } else {
-      params.delete(key);
-    }
-    router.push(`/?${params.toString()}`);
-  }
-
+export default function FilterBar({ categories, filter, onChange }: FilterBarProps) {
   return (
     <div className="flex flex-wrap gap-3 items-center bg-white rounded-xl p-4 shadow-sm border border-gray-100">
       {/* Status */}
@@ -45,9 +29,9 @@ export default function FilterBar({ categories }: FilterBarProps) {
         {STATUS_OPTIONS.map((opt) => (
           <button
             key={opt.value}
-            onClick={() => update('filter', opt.value === 'all' ? '' : opt.value)}
+            onClick={() => onChange({ ...filter, status: opt.value })}
             className={`px-4 py-1.5 text-sm font-medium transition-colors ${
-              currentStatus === opt.value
+              filter.status === opt.value
                 ? 'bg-blue-600 text-white'
                 : 'bg-white text-gray-600 hover:bg-gray-50'
             }`}
@@ -59,8 +43,10 @@ export default function FilterBar({ categories }: FilterBarProps) {
 
       {/* Priority */}
       <select
-        value={currentPriority}
-        onChange={(e) => update('priority', e.target.value)}
+        value={filter.priority ?? ''}
+        onChange={(e) =>
+          onChange({ ...filter, priority: (e.target.value as Priority) || undefined })
+        }
         className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
       >
         {PRIORITY_OPTIONS.map((opt) => (
@@ -73,8 +59,8 @@ export default function FilterBar({ categories }: FilterBarProps) {
       {/* Category */}
       {categories.length > 0 && (
         <select
-          value={currentCategory}
-          onChange={(e) => update('category', e.target.value)}
+          value={filter.category ?? ''}
+          onChange={(e) => onChange({ ...filter, category: e.target.value || undefined })}
           className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="">すべてのカテゴリ</option>

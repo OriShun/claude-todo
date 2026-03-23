@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useTransition } from 'react';
-import { actionToggleTodo, actionDeleteTodo } from '@/app/actions';
+import { useState } from 'react';
 import TodoForm from './TodoForm';
-import type { Todo } from '@/lib/types';
+import type { Todo, UpdateTodoInput } from '@/lib/types';
 
 const PRIORITY_BADGE: Record<string, string> = {
   high: 'bg-red-100 text-red-700',
@@ -19,40 +18,34 @@ const PRIORITY_LABEL: Record<string, string> = {
 
 interface TodoItemProps {
   todo: Todo;
+  onToggle: (id: number) => void;
+  onDelete: (id: number) => void;
+  onUpdate: (id: number, input: UpdateTodoInput) => void;
 }
 
-export default function TodoItem({ todo }: TodoItemProps) {
+export default function TodoItem({ todo, onToggle, onDelete, onUpdate }: TodoItemProps) {
   const [editing, setEditing] = useState(false);
-  const [isPending, startTransition] = useTransition();
 
   const today = new Date().toISOString().split('T')[0];
   const isOverdue = todo.due_date && todo.due_date < today && !todo.completed;
 
-  function handleToggle() {
-    startTransition(() => actionToggleTodo(todo.id));
-  }
-
-  function handleDelete() {
-    startTransition(() => actionDeleteTodo(todo.id));
-  }
-
   if (editing) {
     return (
       <li className="rounded-xl overflow-hidden">
-        <TodoForm editTodo={todo} onCancel={() => setEditing(false)} />
+        <TodoForm
+          editTodo={todo}
+          onUpdate={onUpdate}
+          onCancel={() => setEditing(false)}
+        />
       </li>
     );
   }
 
   return (
-    <li
-      className={`flex items-start gap-3 bg-white rounded-xl p-4 shadow-sm border transition-opacity ${
-        isPending ? 'opacity-50' : ''
-      } ${todo.completed ? 'border-gray-100' : 'border-gray-100'}`}
-    >
+    <li className="flex items-start gap-3 bg-white rounded-xl p-4 shadow-sm border border-gray-100">
       {/* Checkbox */}
       <button
-        onClick={handleToggle}
+        onClick={() => onToggle(todo.id)}
         className={`mt-0.5 w-5 h-5 flex-shrink-0 rounded-full border-2 transition-colors ${
           todo.completed
             ? 'bg-blue-600 border-blue-600'
@@ -69,40 +62,32 @@ export default function TodoItem({ todo }: TodoItemProps) {
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <p
-          className={`text-sm font-medium leading-snug ${
-            todo.completed ? 'line-through text-gray-400' : 'text-gray-800'
-          }`}
-        >
+        <p className={`text-sm font-medium leading-snug ${
+          todo.completed ? 'line-through text-gray-400' : 'text-gray-800'
+        }`}>
           {todo.title}
         </p>
 
-        {/* Meta */}
         <div className="mt-1.5 flex flex-wrap gap-1.5 items-center">
-          {/* Priority */}
           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PRIORITY_BADGE[todo.priority]}`}>
             {PRIORITY_LABEL[todo.priority]}
           </span>
 
-          {/* Category */}
           {todo.category && (
             <span className="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
               {todo.category}
             </span>
           )}
 
-          {/* Tags */}
           {todo.tags.map((tag) => (
             <span key={tag} className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">
               #{tag}
             </span>
           ))}
 
-          {/* Due date */}
           {todo.due_date && (
             <span className={`text-xs ${isOverdue ? 'text-red-600 font-semibold' : 'text-gray-400'}`}>
-              {isOverdue ? '期限切れ: ' : '期限: '}
-              {todo.due_date}
+              {isOverdue ? '期限切れ: ' : '期限: '}{todo.due_date}
             </span>
           )}
         </div>
@@ -120,7 +105,7 @@ export default function TodoItem({ todo }: TodoItemProps) {
           </svg>
         </button>
         <button
-          onClick={handleDelete}
+          onClick={() => onDelete(todo.id)}
           className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
           aria-label="削除"
         >

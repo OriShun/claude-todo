@@ -1,11 +1,14 @@
 import TodoItem from './TodoItem';
-import type { Todo } from '@/lib/types';
+import type { Todo, UpdateTodoInput } from '@/lib/types';
 
 interface TodoListProps {
   todos: Todo[];
+  onToggle: (id: number) => void;
+  onDelete: (id: number) => void;
+  onUpdate: (id: number, input: UpdateTodoInput) => void;
 }
 
-export default function TodoList({ todos }: TodoListProps) {
+export default function TodoList({ todos, onToggle, onDelete, onUpdate }: TodoListProps) {
   if (todos.length === 0) {
     return (
       <div className="text-center py-16 text-gray-400">
@@ -27,7 +30,7 @@ export default function TodoList({ todos }: TodoListProps) {
           </h2>
           <ul className="space-y-2">
             {active.map((todo) => (
-              <TodoItem key={todo.id} todo={todo} />
+              <TodoItem key={todo.id} todo={todo} onToggle={onToggle} onDelete={onDelete} onUpdate={onUpdate} />
             ))}
           </ul>
         </section>
@@ -40,7 +43,7 @@ export default function TodoList({ todos }: TodoListProps) {
           </h2>
           <ul className="space-y-2">
             {completed.map((todo) => (
-              <TodoItem key={todo.id} todo={todo} />
+              <TodoItem key={todo.id} todo={todo} onToggle={onToggle} onDelete={onDelete} onUpdate={onUpdate} />
             ))}
           </ul>
         </section>

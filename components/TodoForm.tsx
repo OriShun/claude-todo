@@ -1,38 +1,45 @@
 'use client';
 
-import { useRef, useState, useTransition } from 'react';
-import { actionCreateTodo, actionUpdateTodo } from '@/app/actions';
-import type { Todo, Priority } from '@/lib/types';
+import { useRef, useState } from 'react';
+import type { Todo, Priority, CreateTodoInput, UpdateTodoInput } from '@/lib/types';
+
+const PRIORITY_OPTIONS: { value: Priority; label: string }[] = [
+  { value: 'high', label: '高' },
+  { value: 'medium', label: '中' },
+  { value: 'low', label: '低' },
+];
 
 interface TodoFormProps {
+  onCreate?: (input: CreateTodoInput) => void;
   editTodo?: Todo;
+  onUpdate?: (id: number, input: UpdateTodoInput) => void;
   onCancel?: () => void;
 }
 
-const PRIORITY_OPTIONS: { value: Priority; label: string; color: string }[] = [
-  { value: 'high', label: '高', color: 'text-red-600' },
-  { value: 'medium', label: '中', color: 'text-yellow-600' },
-  { value: 'low', label: '低', color: 'text-green-600' },
-];
-
-export default function TodoForm({ editTodo, onCancel }: TodoFormProps) {
+export default function TodoForm({ onCreate, editTodo, onUpdate, onCancel }: TodoFormProps) {
   const formRef = useRef<HTMLFormElement>(null);
-  const [isPending, startTransition] = useTransition();
   const [expanded, setExpanded] = useState(!!editTodo);
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    startTransition(async () => {
-      if (editTodo) {
-        await actionUpdateTodo(editTodo.id, formData);
-        onCancel?.();
-      } else {
-        await actionCreateTodo(formData);
-        formRef.current?.reset();
-        setExpanded(false);
-      }
-    });
+    const fd = new FormData(e.currentTarget);
+    const title = (fd.get('title') as string).trim();
+    if (!title) return;
+
+    const priority = (fd.get('priority') as Priority) ?? 'medium';
+    const due_date = (fd.get('due_date') as string) || undefined;
+    const category = (fd.get('category') as string).trim() || undefined;
+    const tagsRaw = fd.get('tags') as string;
+    const tags = tagsRaw.split(',').map((t) => t.trim()).filter(Boolean);
+
+    if (editTodo) {
+      onUpdate?.(editTodo.id, { title, priority, due_date, category, tags });
+      onCancel?.();
+    } else {
+      onCreate?.({ title, priority, due_date, category, tags });
+      formRef.current?.reset();
+      setExpanded(false);
+    }
   }
 
   return (
@@ -63,7 +70,6 @@ export default function TodoForm({ editTodo, onCancel }: TodoFormProps) {
 
       {expanded && (
         <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {/* Priority */}
           <div>
             <label className="block text-xs text-gray-500 mb-1">優先度</label>
             <select
@@ -72,14 +78,11 @@ export default function TodoForm({ editTodo, onCancel }: TodoFormProps) {
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {PRIORITY_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
             </select>
           </div>
 
-          {/* Due date */}
           <div>
             <label className="block text-xs text-gray-500 mb-1">期限日</label>
             <input
@@ -90,7 +93,6 @@ export default function TodoForm({ editTodo, onCancel }: TodoFormProps) {
             />
           </div>
 
-          {/* Category */}
           <div>
             <label className="block text-xs text-gray-500 mb-1">カテゴリ</label>
             <input
@@ -102,7 +104,6 @@ export default function TodoForm({ editTodo, onCancel }: TodoFormProps) {
             />
           </div>
 
-          {/* Tags */}
           <div className="sm:col-span-3">
             <label className="block text-xs text-gray-500 mb-1">タグ (カンマ区切り)</label>
             <input
@@ -117,20 +118,16 @@ export default function TodoForm({ editTodo, onCancel }: TodoFormProps) {
           <div className="sm:col-span-3 flex gap-2 justify-end">
             <button
               type="button"
-              onClick={() => {
-                setExpanded(false);
-                onCancel?.();
-              }}
+              onClick={() => { setExpanded(false); onCancel?.(); }}
               className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-200 rounded-lg hover:bg-gray-50"
             >
               キャンセル
             </button>
             <button
               type="submit"
-              disabled={isPending}
-              className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50"
+              className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
             >
-              {isPending ? '保存中...' : editTodo ? '更新' : '追加'}
+              {editTodo ? '更新' : '追加'}
             </button>
           </div>
         </div>
